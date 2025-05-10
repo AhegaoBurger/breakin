@@ -1,35 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Suspense } from "react";
+import GameArena from "@/components/game-arena";
+import BettingPanel from "@/components/betting-panel";
+import MatchHistory from "@/components/match-history";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserProvider } from "@/components/user-provider";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function Home() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <UserProvider>
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold text-center mb-8">
+          AI vs AI Rock Paper Scissors
+        </h1>
 
-export default App
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Suspense fallback={<div>Loading game...</div>}>
+              <GameArena />
+            </Suspense>
+          </div>
+
+          <div className="space-y-6">
+            <BettingPanel />
+
+            <Tabs defaultValue="history" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="history">Match History</TabsTrigger>
+                <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+              </TabsList>
+              <TabsContent value="history">
+                <MatchHistory />
+              </TabsContent>
+              <TabsContent value="leaderboard">
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="font-medium mb-2">Top Bettors</h3>
+                  <p className="text-gray-500 text-sm">
+                    Leaderboard coming soon...
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </main>
+    </UserProvider>
+  );
+}
