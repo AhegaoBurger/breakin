@@ -28,7 +28,7 @@ export function useShoot() {
     return match ? (match[0] as Move) : null;
   };
 
-  const getAIMove = async (playerNumber: 1 | 2): Promise<Move> => {
+  const getAIMove = async (_playerNumber: 1 | 2): Promise<Move> => {
     setIsLoading(true);
     setError(null);
 
