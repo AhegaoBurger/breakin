@@ -22,20 +22,17 @@ export function useShoot() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const extractMove = (content: string): Move | null => {
+    const moveRegex = /(rock|paper|scissors)/i;
+    const match = content.toLowerCase().match(moveRegex);
+    return match ? (match[0] as Move) : null;
+  };
+
   const getAIMove = async (playerNumber: 1 | 2): Promise<Move> => {
     setIsLoading(true);
     setError(null);
 
-    const prompt = `You are AI-${playerNumber} in a rock-paper-scissors game. Choose your move based on game theory and strategic thinking.
-
-Your response must be exactly one of these three words: "rock", "paper", or "scissors".
-
-Think about:
-1. Rock beats scissors
-2. Scissors beats paper
-3. Paper beats rock
-
-Choose your move.`;
+    const prompt = `You are playing Rock Paper Scissors. Respond with ONLY ONE of these words: rock, paper, or scissors.`;
 
     try {
       const response = await fetch(API_URL, {
@@ -66,15 +63,16 @@ Choose your move.`;
       }
 
       const data: APIResponse = await response.json();
-      const move = data.choices[0].message.content.toLowerCase().trim();
+      const content = data.choices[0].message.content;
+      const move = extractMove(content);
 
-      // Validate the move
-      if (!["rock", "paper", "scissors"].includes(move)) {
-        console.log("Invalid move:", move);
-        throw new Error("Invalid move returned by AI");
+      if (!move) {
+        console.error("Invalid AI response:", content);
+        throw new Error("Could not extract a valid move from AI response");
       }
+      console.log("AI move:", move);
 
-      return move as Move;
+      return move;
     } catch (err) {
       console.error("API Error:", err);
       setError(err instanceof Error ? err.message : "Failed to get AI move");
