@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useUser } from "./user-provider"
+import { useShoot } from "@/hooks/useShoot"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +13,7 @@ type GameState = "idle" | "countdown" | "playing" | "result"
 
 export default function GameArena() {
   const { addMatchToHistory } = useUser()
+  const { getAIMove, isLoading } = useShoot()
   const [gameState, setGameState] = useState<GameState>("idle")
   const [countdown, setCountdown] = useState(3)
   const [ai1Move, setAi1Move] = useState<Move | null>(null)
@@ -31,11 +33,6 @@ export default function GameArena() {
     return "AI-2"
   }, [])
 
-  const getRandomMove = (): Move => {
-    const moves: Move[] = ["rock", "paper", "scissors"]
-    return moves[Math.floor(Math.random() * moves.length)]
-  }
-
   const startGame = () => {
     setGameState("countdown")
     setCountdown(3)
@@ -52,34 +49,44 @@ export default function GameArena() {
     } else if (gameState === "countdown" && countdown === 0) {
       setGameState("playing")
 
-      // AI makes moves with slight delay
-      setTimeout(() => {
-        const move1 = getRandomMove()
-        const move2 = getRandomMove()
+      // Get moves from both AIs through API
+      const getMoves = async () => {
+        try {
+          // Make concurrent API calls for both AI players
+          const [move1, move2] = await Promise.all([
+            getAIMove(1),
+            getAIMove(2)
+          ])
 
-        setAi1Move(move1)
-        setAi2Move(move2)
+          setAi1Move(move1)
+          setAi2Move(move2)
 
-        const gameWinner = determineWinner(move1, move2)
-        setWinner(gameWinner)
+          const gameWinner = determineWinner(move1, move2)
+          setWinner(gameWinner)
 
-        // Add match to history
-        addMatchToHistory({
-          id: Date.now(),
-          roundNumber,
-          ai1Move: move1,
-          ai2Move: move2,
-          winner: gameWinner,
-          timestamp: new Date().toISOString(),
-        })
+          // Add match to history
+          addMatchToHistory({
+            id: Date.now(),
+            roundNumber,
+            ai1Move: move1,
+            ai2Move: move2,
+            winner: gameWinner,
+            timestamp: new Date().toISOString(),
+          })
 
-        setRoundNumber((prev) => prev + 1)
-        setGameState("result")
-      }, 1500)
+          setRoundNumber((prev) => prev + 1)
+          setGameState("result")
+        } catch (error) {
+          console.error("Error getting AI moves:", error)
+          setGameState("idle")
+        }
+      }
+
+      getMoves()
     }
 
     return () => clearTimeout(timer)
-  }, [gameState, countdown, determineWinner, addMatchToHistory, roundNumber])
+  }, [gameState, countdown, determineWinner, addMatchToHistory, roundNumber, getAIMove])
 
   const renderMoveIcon = (move: Move | null, size = 24) => {
     if (!move) return <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse"></div>
@@ -101,7 +108,7 @@ export default function GameArena() {
           <Badge variant="outline" className="text-lg px-4 py-1">
             Round {roundNumber}
           </Badge>
-          <Button onClick={startGame} disabled={gameState === "countdown" || gameState === "playing"}>
+          <Button onClick={startGame} disabled={gameState === "countdown" || gameState === "playing" || isLoading}>
             {gameState === "idle" ? "Start Match" : "New Match"}
           </Button>
         </div>
@@ -110,7 +117,7 @@ export default function GameArena() {
           <div
             className={cn(
               "flex flex-col items-center p-4 rounded-lg transition-all",
-              winner === "AI-1" ? "bg-green-100 scale-105" : "",
+              winner === "AI-1" ? "bg-green-100 scale-105" : ""
             )}
           >
             <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -140,7 +147,7 @@ export default function GameArena() {
           <div
             className={cn(
               "flex flex-col items-center p-4 rounded-lg transition-all",
-              winner === "AI-2" ? "bg-green-100 scale-105" : "",
+              winner === "AI-2" ? "bg-green-100 scale-105" : ""
             )}
           >
             <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mb-4">
