@@ -1,50 +1,73 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useUser } from "./user-provider"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Coins, TrendingUp } from "lucide-react"
+import { useState } from "react";
+import { useUser } from "./user-provider";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Coins, TrendingUp } from "lucide-react";
 
 export default function BettingPanel() {
-  const { balance, placeBet } = useUser()
-  const [betAmount, setBetAmount] = useState<number>(10)
-  const [selectedAI, setSelectedAI] = useState<"AI-1" | "AI-2" | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { balance, placeBet, walletAddress, bettingPools } = useUser();
+  const [betAmount, setBetAmount] = useState<number>(10);
+  const [selectedAI, setSelectedAI] = useState<"AI-1" | "AI-2" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Calculate odds based on pool sizes
+  const totalPoolSize = bettingPools.ai1.total + bettingPools.ai2.total;
+
+  const calculateOdds = (poolSize: number) => {
+    if (totalPoolSize === 0 || poolSize === 0) return 2.0;
+    return Number.parseFloat((totalPoolSize / poolSize).toFixed(2));
+  };
+
+  const ai1Odds = calculateOdds(bettingPools.ai1.total);
+  const ai2Odds = calculateOdds(bettingPools.ai2.total);
 
   const handleBetAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseInt(e.target.value)
+    const value = Number.parseInt(e.target.value);
     if (isNaN(value) || value <= 0) {
-      setBetAmount(0)
+      setBetAmount(0);
     } else {
-      setBetAmount(value)
+      setBetAmount(value);
     }
-  }
+  };
 
   const handlePlaceBet = () => {
     if (!selectedAI) {
-      setError("Please select an AI to bet on")
-      return
+      setError("Please select an AI to bet on");
+      return;
     }
 
     if (betAmount <= 0) {
-      setError("Bet amount must be greater than 0")
-      return
+      setError("Bet amount must be greater than 0");
+      return;
     }
 
     if (betAmount > balance) {
-      setError("Insufficient balance")
-      return
+      setError("Insufficient balance");
+      return;
     }
 
-    placeBet(selectedAI, betAmount)
-    setError(null)
-  }
+    if (!walletAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    placeBet(selectedAI, betAmount);
+    setError(null);
+  };
+
+  // Calculate potential winnings based on current odds
+  const getPotentialWinnings = () => {
+    if (!selectedAI) return 0;
+    const odds = selectedAI === "AI-1" ? ai1Odds : ai2Odds;
+    return Math.round(betAmount * odds);
+  };
 
   return (
     <Card>
@@ -89,20 +112,27 @@ export default function BettingPanel() {
 
           <div className="space-y-2">
             <Label>Select Winner</Label>
-            <RadioGroup value={selectedAI || ""} onValueChange={(value) => setSelectedAI(value as "AI-1" | "AI-2")}>
+            <RadioGroup
+              value={selectedAI || ""}
+              onValueChange={(value) => setSelectedAI(value as "AI-1" | "AI-2")}
+            >
               <div className="flex items-center space-x-2 border rounded-md p-3">
                 <RadioGroupItem value="AI-1" id="ai1" />
                 <Label htmlFor="ai1" className="flex-1 cursor-pointer">
                   AI-1
                 </Label>
-                <span className="text-sm text-gray-500">x2.0</span>
+                <span className="text-sm text-gray-500">
+                  x{ai1Odds.toFixed(2)}
+                </span>
               </div>
               <div className="flex items-center space-x-2 border rounded-md p-3">
                 <RadioGroupItem value="AI-2" id="ai2" />
                 <Label htmlFor="ai2" className="flex-1 cursor-pointer">
                   AI-2
                 </Label>
-                <span className="text-sm text-gray-500">x2.0</span>
+                <span className="text-sm text-gray-500">
+                  x{ai2Odds.toFixed(2)}
+                </span>
               </div>
             </RadioGroup>
           </div>
@@ -113,7 +143,12 @@ export default function BettingPanel() {
             <Button
               className="w-full"
               onClick={handlePlaceBet}
-              disabled={!selectedAI || betAmount <= 0 || betAmount > balance}
+              disabled={
+                !selectedAI ||
+                betAmount <= 0 ||
+                betAmount > balance ||
+                !walletAddress
+              }
             >
               <TrendingUp className="mr-2" size={16} />
               Place Bet
@@ -121,10 +156,16 @@ export default function BettingPanel() {
           </div>
 
           <div className="text-sm text-gray-500 mt-2">
-            Potential winnings: {selectedAI ? (betAmount * 2).toLocaleString() : 0} coins
+            Potential winnings: {getPotentialWinnings().toLocaleString()} coins
           </div>
+
+          {!walletAddress && (
+            <div className="text-sm text-amber-600 mt-2">
+              Connect your wallet to place bets
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
