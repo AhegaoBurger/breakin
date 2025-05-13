@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Wallet } from "lucide-react";
+// import { Button } from "@/components/ui/button";
+// import { Wallet } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
@@ -37,11 +37,11 @@ export default function WalletConnect() {
   }, [publicKey, connection]);
 
   // Format wallet address for display
-  const formatAddress = (address: string) => {
-    return `${address.substring(0, 6)}...${address.substring(
-      address.length - 4
-    )}`;
-  };
+  // const formatAddress = (address: string) => {
+  //   return `${address.substring(0, 6)}...${address.substring(
+  //     address.length - 4
+  //   )}`;
+  // };
 
   return (
     <div className="flex items-center gap-4">
