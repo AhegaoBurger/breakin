@@ -7,6 +7,9 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 type Match = {
   id: number;
@@ -43,25 +46,22 @@ type UserContextType = {
   balance: number;
   matchHistory: Match[];
   activeBet: Bet | null;
-  walletAddress: string | null;
-  walletBalance: number;
   bettingPools: {
     ai1: BettingPool;
     ai2: BettingPool;
   };
   placeBet: (selectedAI: "AI-1" | "AI-2", amount: number) => void;
   addMatchToHistory: (match: Match) => void;
-  connectWallet: (address: string) => void;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [balance, setBalance] = useState<number>(1000);
+  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+  const [balance, setBalance] = useState<number>(0);
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [activeBet, setActiveBet] = useState<Bet | null>(null);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   // Betting pools
   const [bettingPools, setBettingPools] = useState<{
@@ -72,12 +72,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
     ai2: { total: 0, bettors: [] },
   });
 
-  // Connect wallet
-  const connectWallet = (address: string) => {
-    setWalletAddress(address);
-    // Simulate wallet balance (in a real app, this would be fetched from the blockchain)
-    setWalletBalance(Number.parseFloat((Math.random() * 10).toFixed(4)));
-  };
+  // Fetch SOL balance when wallet is connected
+  useEffect(() => {
+    if (!publicKey) {
+      setBalance(0);
+      return;
+    }
+
+    const fetchBalance = async () => {
+      try {
+        const lamports = await connection.getBalance(publicKey);
+        setBalance(lamports / LAMPORTS_PER_SOL);
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        setBalance(0);
+      }
+    };
+
+    fetchBalance();
+    const intervalId = setInterval(fetchBalance, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [publicKey, connection]);
 
   // Settle bet when a new match is added
   useEffect(() => {
@@ -108,7 +124,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Calculate winnings
         const winnings = Math.round(activeBet.amount * odds);
 
-        // Update balance
+        // Update balance (in a real app, this would be a blockchain transaction)
         setBalance((prev) => prev + winnings);
       }
 
@@ -121,9 +137,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [matchHistory, activeBet, bettingPools]);
 
   const placeBet = (selectedAI: "AI-1" | "AI-2", amount: number) => {
-    if (amount > balance || !walletAddress) return;
+    if (amount > balance || !publicKey) return;
 
-    // Deduct bet amount from balance
+    // Deduct bet amount from balance (in a real app, this would be a blockchain transaction)
     setBalance((prev) => prev - amount);
 
     // Create new bet
@@ -140,7 +156,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setBettingPools((prev) => {
       const newBettor: Bettor = {
         id: Date.now(),
-        address: walletAddress!,
+        address: publicKey.toBase58(),
         amount,
         selectedAI,
         timestamp: Date.now(),
@@ -176,12 +192,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         balance,
         matchHistory,
         activeBet,
-        walletAddress,
-        walletBalance,
         bettingPools,
         placeBet,
         addMatchToHistory,
-        connectWallet,
       }}
     >
       {children}

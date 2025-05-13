@@ -5,9 +5,11 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "./user-provider";
 import { Coins, TrendingUp, Users } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 export default function BettingPool() {
-  const { bettingPools, walletAddress } = useUser();
+  const { bettingPools } = useUser();
+  const { publicKey } = useWallet();
 
   // Calculate total pool size
   const totalPoolSize = bettingPools.ai1.total + bettingPools.ai2.total;
@@ -47,13 +49,13 @@ export default function BettingPool() {
               </div>
               <div className="flex items-center gap-1">
                 <Coins size={14} className="text-amber-500" />
-                <span>{bettingPools.ai1.total}</span>
+                <span>{bettingPools.ai1.total.toFixed(4)} SOL</span>
               </div>
             </div>
             <Progress value={ai1Percentage} className="h-2" />
             <div className="flex justify-between text-xs">
               <span>
-                Pool: {((ai1Percentage / 100) * totalPoolSize).toFixed(0)} coins
+                Pool: {((ai1Percentage / 100) * totalPoolSize).toFixed(4)} SOL
               </span>
               <span className="flex items-center gap-1">
                 <TrendingUp size={12} />
@@ -72,13 +74,13 @@ export default function BettingPool() {
               </div>
               <div className="flex items-center gap-1">
                 <Coins size={14} className="text-amber-500" />
-                <span>{bettingPools.ai2.total}</span>
+                <span>{bettingPools.ai2.total.toFixed(4)} SOL</span>
               </div>
             </div>
             <Progress value={ai2Percentage} className="h-2" />
             <div className="flex justify-between text-xs">
               <span>
-                Pool: {((ai2Percentage / 100) * totalPoolSize).toFixed(0)} coins
+                Pool: {((ai2Percentage / 100) * totalPoolSize).toFixed(4)} SOL
               </span>
               <span className="flex items-center gap-1">
                 <TrendingUp size={12} />
@@ -91,7 +93,7 @@ export default function BettingPool() {
             <div className="flex justify-between items-center">
               <h4 className="text-sm font-medium">Recent Bets</h4>
               <span className="text-xs text-gray-500">
-                Total Pool: {totalPoolSize} coins
+                Total Pool: {totalPoolSize.toFixed(4)} SOL
               </span>
             </div>
             <ScrollArea className="h-[120px] rounded-md border p-2">
@@ -114,7 +116,7 @@ export default function BettingPool() {
                         {bettor.selectedAI}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {bettor.address === walletAddress
+                        {bettor.address === publicKey?.toBase58()
                           ? "(You)"
                           : `(${bettor.address.substring(
                               0,
@@ -126,7 +128,7 @@ export default function BettingPool() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Coins size={12} className="text-amber-500" />
-                      <span>{bettor.amount}</span>
+                      <span>{bettor.amount.toFixed(4)} SOL</span>
                     </div>
                   </div>
                 ))}

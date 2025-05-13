@@ -10,10 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Coins, TrendingUp } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 export default function BettingPanel() {
-  const { balance, placeBet, walletAddress, bettingPools } = useUser();
-  const [betAmount, setBetAmount] = useState<number>(10);
+  const { balance, placeBet, bettingPools } = useUser();
+  const { publicKey } = useWallet();
+  const [betAmount, setBetAmount] = useState<number>(0.1);
   const [selectedAI, setSelectedAI] = useState<"AI-1" | "AI-2" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ export default function BettingPanel() {
   const ai2Odds = calculateOdds(bettingPools.ai2.total);
 
   const handleBetAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseInt(e.target.value);
+    const value = Number.parseFloat(e.target.value);
     if (isNaN(value) || value <= 0) {
       setBetAmount(0);
     } else {
@@ -49,11 +51,11 @@ export default function BettingPanel() {
     }
 
     if (betAmount > balance) {
-      setError("Insufficient balance");
+      setError("Insufficient SOL balance");
       return;
     }
 
-    if (!walletAddress) {
+    if (!publicKey) {
       setError("Please connect your wallet first");
       return;
     }
@@ -66,7 +68,7 @@ export default function BettingPanel() {
   const getPotentialWinnings = () => {
     if (!selectedAI) return 0;
     const odds = selectedAI === "AI-1" ? ai1Odds : ai2Odds;
-    return Math.round(betAmount * odds);
+    return Number.parseFloat((betAmount * odds).toFixed(4));
   };
 
   return (
@@ -76,19 +78,20 @@ export default function BettingPanel() {
           <span>Place Your Bet</span>
           <div className="flex items-center text-amber-500">
             <Coins className="mr-1" size={18} />
-            <span>{balance.toLocaleString()} coins</span>
+            <span>{balance.toFixed(4)} SOL</span>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="bet-amount">Bet Amount</Label>
+            <Label htmlFor="bet-amount">Bet Amount (SOL)</Label>
             <div className="flex mt-1.5">
               <Input
                 id="bet-amount"
                 type="number"
-                min="1"
+                min="0.01"
+                step="0.01"
                 value={betAmount}
                 onChange={handleBetAmountChange}
                 className="rounded-r-none"
@@ -96,14 +99,14 @@ export default function BettingPanel() {
               <Button
                 variant="outline"
                 className="rounded-l-none border-l-0"
-                onClick={() => setBetAmount(Math.max(0, betAmount - 10))}
+                onClick={() => setBetAmount(Math.max(0, betAmount - 0.1))}
               >
                 -
               </Button>
               <Button
                 variant="outline"
                 className="rounded-l-none border-l-0"
-                onClick={() => setBetAmount(betAmount + 10)}
+                onClick={() => setBetAmount(betAmount + 0.1)}
               >
                 +
               </Button>
@@ -147,7 +150,7 @@ export default function BettingPanel() {
                 !selectedAI ||
                 betAmount <= 0 ||
                 betAmount > balance ||
-                !walletAddress
+                !publicKey
               }
             >
               <TrendingUp className="mr-2" size={16} />
@@ -156,10 +159,10 @@ export default function BettingPanel() {
           </div>
 
           <div className="text-sm text-gray-500 mt-2">
-            Potential winnings: {getPotentialWinnings().toLocaleString()} coins
+            Potential winnings: {getPotentialWinnings().toFixed(4)} SOL
           </div>
 
-          {!walletAddress && (
+          {!publicKey && (
             <div className="text-sm text-amber-600 mt-2">
               Connect your wallet to place bets
             </div>
