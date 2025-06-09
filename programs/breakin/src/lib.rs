@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::Clock;
 use std::mem::size_of;
 
-// IMPORTANT: Replace with your actual Program ID after first deployment!
+// IMPORTANT NOTE TO SELF: Replace with your actual Program ID after first deployment!
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
